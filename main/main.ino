@@ -14,7 +14,7 @@ const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 
 // API endpoint
-const char* apiURL = "http://turnonpc.thanatach.com/";
+const char* apiURL = API_URL;
 
 // OLED display settings
 #define SCREEN_WIDTH 128

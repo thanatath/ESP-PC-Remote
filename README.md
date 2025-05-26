@@ -23,6 +23,7 @@ backend/         # Node.js backend API
   Dockerfile     # (Optional) Docker support
 main/            # ESP32 Arduino code
   main.ino       # Main firmware for ESP32
+  secrets.h      # WiFi credentials (not tracked by git)
 ```
 
 ## How It Works
@@ -48,12 +49,15 @@ main/            # ESP32 Arduino code
   - ArduinoOTA
   - ESPmDNS *(for mDNS support)*
 - Update `main/main.ino` to include WiFi credentials from `secrets.h` instead of hardcoding them.
-- Create a `main/secrets.h` file with your WiFi SSID and password as follows:
-  ```cpp
-  #define WIFI_SSID "YourSSID"
-  #define WIFI_PASSWORD "YourPassword"
-  ```
-- The `main/secrets.h` file is already in `.gitignore` and will not be tracked by Git.
+- **Hide your API URL:**
+  - In `main/main.ino`, the API endpoint is set using `#define API_URL "http://your-backend-api-url"`.
+  - For security, create a `main/secrets.h` file and add your API URL there:
+    ```cpp
+    #define WIFI_SSID "YourSSID"
+    #define WIFI_PASSWORD "YourPassword"
+    #define API_URL "http://your-backend-api-url"
+    ```
+  - Make sure `secrets.h` is listed in `.gitignore` so it is not tracked by git.
 - Flash the firmware to your ESP32.
 
 ### 2. Backend Server
