@@ -1,6 +1,6 @@
 # ESP32 PC Remote Control
 
-This project allows you to remotely power on your PC using an ESP32 microcontroller, a relay, and a simple web interface. It also supports OTA (Over-The-Air) updates and displays status on an OLED screen. The backend server is written in Node.js and provides a simple API for triggering the relay.
+This project allows you to remotely power on your PC using an ESP32 microcontroller, a relay, and a simple web interface. It also supports OTA (Over-The-Air) updates, mDNS (local domain name), and displays status on an OLED screen. The backend server is written in Node.js and provides a simple API for triggering the relay.
 
 ## Features
 - Remotely power on your PC via web interface or API
@@ -8,6 +8,7 @@ This project allows you to remotely power on your PC using an ESP32 microcontrol
 - WiFi connection status and OTA update support
 - Node.js backend API for secure relay triggering
 - Stylish web UI for manual control
+- **mDNS support**: Access your ESP32 at http://remote.local on your local network
 
 ## Hardware Requirements
 - ESP32 DevKit
@@ -30,6 +31,7 @@ main/            # ESP32 Arduino code
 3. The ESP32 checks the backend API every 5 seconds. If the API returns `{ on: true }`, it triggers the relay to power on the PC.
 4. You can also manually trigger the relay from the ESP32's web interface.
 5. The OLED display shows connection and system status.
+6. **You can access the ESP32 using http://remote.local thanks to mDNS.**
 
 ## Setup Instructions
 
@@ -44,6 +46,7 @@ main/            # ESP32 Arduino code
   - Adafruit_GFX
   - Adafruit_SSD1306
   - ArduinoOTA
+  - ESPmDNS *(for mDNS support)*
 - Update `main/main.ino` to include WiFi credentials from `secrets.h` instead of hardcoding them.
 - Create a `main/secrets.h` file with your WiFi SSID and password as follows:
   ```cpp
@@ -73,12 +76,17 @@ main/            # ESP32 Arduino code
 - `GET /set/on`   - Sets `on` to true for the next `/` request.
 
 ## Web Interface
-- Access the ESP32's IP address in your browser to use the web UI.
+- Access the ESP32's IP address or `http://remote.local` in your browser to use the web UI.
 - Click the "Turn On PC" button to trigger the relay manually.
 
 ## OTA Update
 - Hostname: `ESP32-PC-Remote`
 - Password: `pcremote123`
+
+## mDNS (Local Domain Name)
+- The ESP32 advertises itself as `remote.local` on your local network.
+- You can access the web interface at: [http://remote.local](http://remote.local)
+- Make sure your computer/device supports mDNS (Windows: install Bonjour, Mac/Linux: built-in).
 
 ## License
 MIT License

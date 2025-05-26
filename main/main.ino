@@ -6,6 +6,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <ArduinoOTA.h>
+#include <ESPmDNS.h>
 #include "secrets.h"
 
 // WiFi credentials
@@ -63,7 +64,16 @@ void setup() {
   
   // Connect to WiFi
   connectToWiFi();
-  
+
+  // Start mDNS responder
+  if (MDNS.begin("remote")) {
+    Serial.println("mDNS responder started: http://remote.local");
+    updateDisplay("mDNS Ready", "remote.local");
+  } else {
+    Serial.println("Error setting up mDNS responder!");
+    updateDisplay("mDNS Error", "");
+  }
+
   // Setup OTA
   setupOTA();
   
