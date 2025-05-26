@@ -22,8 +22,8 @@ const char* apiURL = API_URL;
 #define I2C_SCL 18
 #define I2C_SDA 19
 
-// Relay pin (using GPIO 2 which is safe for ESP32 DevKit)
-#define RELAY_PIN 2
+// Relay pin (using GPIO 4 which is safe for ESP32 DevKit)
+#define RELAY_PIN 4
 
 // Create objects
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -220,71 +220,173 @@ void handlePowerOn() {
 }
 
 void handleRoot() {
-  String html = "<!DOCTYPE html><html><head>";
+  String html = "<!DOCTYPE html><html lang='en'><head>";
   html += "<meta charset='UTF-8'>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=no'>";
   html += "<title>ESP32 PC Remote Control</title>";
+  html += "<script src='https://cdn.tailwindcss.com'></script>";
+  html += "<script>";
+  html += "tailwind.config = {";
+  html += "  theme: {";
+  html += "    extend: {";
+  html += "      animation: {";
+  html += "        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',";
+  html += "        'bounce-slow': 'bounce 2s infinite',";
+  html += "        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite'";
+  html += "      }";
+  html += "    }";
+  html += "  }";
+  html += "}";
+  html += "</script>";
   html += "<style>";
-  html += "body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }";
-  html += ".container { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }";
-  html += "h1 { text-align: center; margin-bottom: 30px; font-size: 2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }";
-  html += ".status-card { background: rgba(255,255,255,0.2); padding: 20px; border-radius: 15px; margin: 15px 0; border-left: 5px solid #00ff88; }";
-  html += ".status-label { font-weight: bold; font-size: 0.9em; color: #b3d9ff; }";
-  html += ".status-value { font-size: 1.1em; margin-top: 5px; }";
-  html += ".power-btn { width: 100%; padding: 20px; font-size: 1.2em; font-weight: bold; color: white; background: linear-gradient(45deg, #ff6b6b, #ff8e8e); border: none; border-radius: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(255,107,107,0.3); }";
-  html += ".power-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,107,0.4); background: linear-gradient(45deg, #ff5252, #ff7979); }";
-  html += ".power-btn:active { transform: translateY(0); }";
-  html += ".refresh-btn { background: linear-gradient(45deg, #4ecdc4, #44a08d); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; float: right; font-size: 0.9em; }";
-  html += ".icon { display: inline-block; margin-right: 10px; }";
-  html += "@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }";
-  html += ".pulse { animation: pulse 2s infinite; }";
-  html += "</style></head><body>";
-  html += "<div class='container'>";
-  html += "<h1>🖥️ ESP32 PC Remote</h1>";
+  html += "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');";
+  html += "body { font-family: 'Inter', sans-serif; }";
+  html += ".gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); }";
+  html += ".glass { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }";
+  html += ".status-online { background: linear-gradient(45deg, #10b981, #059669); }";
+  html += ".status-offline { background: linear-gradient(45deg, #ef4444, #dc2626); }";
+  html += ".power-btn-gradient { background: linear-gradient(45deg, #f59e0b, #d97706); }";
+  html += ".power-btn-gradient:hover { background: linear-gradient(45deg, #d97706, #b45309); }";
+  html += "</style></head>";
+  html += "<body class='gradient-bg min-h-screen'>";
   
-  html += "<div class='status-card'>";
-  html += "<div class='status-label'>📡 Connection Status</div>";
-  html += "<div class='status-value'>";
+  // Main container with improved mobile layout
+  html += "<div class='min-h-screen flex flex-col p-4 sm:p-6 lg:p-8'>";
+  html += "<div class='flex-1 max-w-md mx-auto w-full space-y-4 sm:space-y-6'>";
+  
+  // Header with logo and title
+  html += "<div class='glass rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center'>";
+  html += "<div class='text-4xl sm:text-5xl mb-2 animate-bounce-slow'>🖥️</div>";
+  html += "<h1 class='text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2'>ESP32 PC Remote</h1>";
+  html += "<p class='text-blue-100 text-sm sm:text-base opacity-90'>Remote Power Control</p>";
+  html += "</div>";
+  
+  // Connection Status Card
+  html += "<div class='glass rounded-xl sm:rounded-2xl p-4 sm:p-5'>";
+  html += "<div class='flex items-center justify-between mb-3'>";
+  html += "<div class='flex items-center space-x-2 sm:space-x-3'>";
+  html += "<div class='text-lg sm:text-xl'>📡</div>";
+  html += "<span class='text-white font-medium text-sm sm:text-base'>WiFi Status</span>";
+  html += "</div>";
   if (wifiConnected) {
-    html += "✅ Connected to " + String(ssid);
+    html += "<div class='status-online text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center space-x-1'>";
+    html += "<div class='w-2 h-2 bg-white rounded-full animate-ping-slow'></div>";
+    html += "<span>Online</span>";
+    html += "</div>";
   } else {
-    html += "❌ Disconnected";
+    html += "<div class='status-offline text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium'>Offline</div>";
   }
-  html += "</div></div>";
-  
-  html += "<div class='status-card'>";
-  html += "<div class='status-label'>🌐 Network Information</div>";
-  html += "<div class='status-value'>IP: " + WiFi.localIP().toString() + "</div>";
+  html += "</div>";
+  html += "<div class='text-blue-100 text-xs sm:text-sm'>";
+  if (wifiConnected) {
+    html += "Connected to " + String(ssid);
+  } else {
+    html += "Disconnected from WiFi";
+  }
+  html += "</div>";
   html += "</div>";
   
-  html += "<div class='status-card'>";
-  html += "<div class='status-label'>⚡ System Status</div>";
-  html += "<div class='status-value'>" + lastStatus + "</div>";
+  // Network Information Card
+  html += "<div class='glass rounded-xl sm:rounded-2xl p-4 sm:p-5'>";
+  html += "<div class='flex items-center space-x-2 sm:space-x-3 mb-3'>";
+  html += "<div class='text-lg sm:text-xl'>🌐</div>";
+  html += "<span class='text-white font-medium text-sm sm:text-base'>Network Info</span>";
+  html += "</div>";
+  html += "<div class='space-y-2'>";
+  html += "<div class='flex flex-col sm:flex-row sm:justify-between sm:items-center'>";
+  html += "<span class='text-blue-200 text-xs sm:text-sm'>IP Address</span>";
+  html += "<span class='text-white font-mono text-xs sm:text-sm break-all'>" + WiFi.localIP().toString() + "</span>";
+  html += "</div>";
+  html += "<div class='flex flex-col sm:flex-row sm:justify-between sm:items-center'>";
+  html += "<span class='text-blue-200 text-xs sm:text-sm'>Hostname</span>";
+  html += "<span class='text-white font-mono text-xs sm:text-sm'>remote.local</span>";
+  html += "</div>";
+  html += "</div>";
   html += "</div>";
   
-  html += "<div class='status-card'>";
-  html += "<div class='status-label'>🛠️ OTA Update</div>";
-  html += "<div class='status-value'>Hostname: ESP32-PC-Remote</div>";
-  html += "<div class='status-value'>Password: pcremote123</div>";
+  // System Status Card
+  html += "<div class='glass rounded-xl sm:rounded-2xl p-4 sm:p-5'>";
+  html += "<div class='flex items-center space-x-2 sm:space-x-3 mb-3'>";
+  html += "<div class='text-lg sm:text-xl'>⚡</div>";
+  html += "<span class='text-white font-medium text-sm sm:text-base'>System Status</span>";
+  html += "</div>";
+  html += "<div class='text-blue-100 text-xs sm:text-sm'>" + lastStatus + "</div>";
   html += "</div>";
   
-  html += "<div style='margin: 30px 0;'>";
-  html += "<button class='refresh-btn' onclick='location.reload()'>🔄 Refresh</button>";
+  // OTA Update Info (Collapsible on mobile)
+  html += "<details class='glass rounded-xl sm:rounded-2xl overflow-hidden'>";
+  html += "<summary class='p-4 sm:p-5 cursor-pointer hover:bg-white hover:bg-opacity-10 transition-colors'>";
+  html += "<div class='flex items-center space-x-2 sm:space-x-3'>";
+  html += "<div class='text-lg sm:text-xl'>🛠️</div>";
+  html += "<span class='text-white font-medium text-sm sm:text-base'>OTA Update Info</span>";
+  html += "</div>";
+  html += "</summary>";
+  html += "<div class='px-4 sm:px-5 pb-4 sm:pb-5 pt-0 border-t border-white border-opacity-20'>";
+  html += "<div class='space-y-2 mt-3'>";
+  html += "<div class='flex flex-col sm:flex-row sm:justify-between sm:items-center'>";
+  html += "<span class='text-blue-200 text-xs sm:text-sm'>Hostname</span>";
+  html += "<span class='text-white font-mono text-xs sm:text-sm'>ESP32-PC-Remote</span>";
+  html += "</div>";
+  html += "<div class='flex flex-col sm:flex-row sm:justify-between sm:items-center'>";
+  html += "<span class='text-blue-200 text-xs sm:text-sm'>Password</span>";
+  html += "<span class='text-white font-mono text-xs sm:text-sm'>pcremote123</span>";
+  html += "</div>";
+  html += "</div>";
+  html += "</div>";
+  html += "</details>";
+  
+  // Control Buttons
+  html += "<div class='space-y-3 sm:space-y-4 pt-2'>";
+  html += "<button onclick='location.reload()' class='w-full glass rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white hover:bg-white hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center space-x-2 active:scale-95'>";
+  html += "<span class='text-lg sm:text-xl'>🔄</span>";
+  html += "<span class='font-medium text-sm sm:text-base'>Refresh Status</span>";
+  html += "</button>";
+  
+  html += "<button id='powerBtn' onclick='powerOn()' class='w-full power-btn-gradient rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white font-bold text-base sm:text-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3'>";
+  html += "<span class='text-2xl sm:text-3xl animate-pulse-slow'>🔌</span>";
+  html += "<span>Power On PC</span>";
+  html += "</button>";
   html += "</div>";
   
-  html += "<button class='power-btn' onclick='powerOn()'>🔌 Turn On PC</button>";
-  
   html += "</div>";
+  html += "</div>";
+  
+  // Success Toast (hidden by default)
+  html += "<div id='toast' class='fixed top-3 left-1/2 -translate-x-1/2 z-50 max-w-xs w-full px-4 pointer-events-none'>";
+  html +=   "<div class='glass rounded-lg shadow-lg p-3 flex items-center space-x-2 text-white bg-opacity-90 transition-transform duration-300 transform -translate-y-20 opacity-0' style='backdrop-filter: blur(12px);' id='toastBox'>";
+  html +=     "<span class='text-xl'>✅</span>";
+  html +=     "<div>";
+  html +=       "<div class='font-semibold text-sm'>Success!</div>";
+  html +=       "<div class='text-xs text-blue-100'>PC Power Signal Sent</div>";
+  html +=     "</div>";
+  html +=   "</div>";
+  html += "</div>";
+  
   html += "<script>";
   html += "function powerOn() {";
+  html += "  const btn = document.getElementById('powerBtn');";
+  html += "  const toastBox = document.getElementById('toastBox');";
+  html += "  btn.disabled = true;";
+  html += "  btn.innerHTML = '<div class=\"animate-spin rounded-full h-6 w-6 border-b-2 border-white\"></div><span>Sending...</span>';";
   html += "  fetch('/on').then(response => {";
   html += "    if(response.ok) {";
-  html += "      alert('✅ PC Power Signal Sent Successfully!');";
-  html += "      setTimeout(() => location.reload(), 1000);";
+  html += "      toastBox.classList.remove('-translate-y-20','opacity-0');";
+  html += "      toastBox.classList.add('translate-y-0','opacity-100');";
+  html += "      setTimeout(() => {";
+  html += "        toastBox.classList.remove('translate-y-0','opacity-100');";
+  html += "        toastBox.classList.add('-translate-y-20','opacity-0');";
+  html += "        setTimeout(() => location.reload(), 500);";
+  html += "      }, 1800);";
   html += "    } else {";
   html += "      alert('❌ Failed to send power signal');";
+  html += "      btn.disabled = false;";
+  html += "      btn.innerHTML = '<span class=\"text-2xl sm:text-3xl animate-pulse-slow\">🔌</span><span>Power On PC</span>';";
   html += "    }";
-  html += "  }).catch(err => alert('❌ Network error'));";
+  html += "  }).catch(err => {";
+  html += "    alert('❌ Network error');";
+  html += "    btn.disabled = false;";
+  html += "    btn.innerHTML = '<span class=\"text-2xl sm:text-3xl animate-pulse-slow\">🔌</span><span>Power On PC</span>';";
+  html += "  });";
   html += "}";
   html += "</script></body></html>";
   server.send(200, "text/html", html);

@@ -1,5 +1,7 @@
 # ESP32 PC Remote Control
 
+![Screenshot](./screenshot.png)
+
 This project allows you to remotely power on your PC using an ESP32 microcontroller, a relay, and a simple web interface. It also supports OTA (Over-The-Air) updates, mDNS (local domain name), and displays status on an OLED screen. The backend server is written in Node.js and provides a simple API for triggering the relay.
 
 ## Features
