@@ -6,11 +6,13 @@ This project allows you to remotely power on your PC using an ESP32 microcontrol
 
 ## Features
 - Remotely power on your PC via web interface or API
-- OLED display for real-time status
+- OLED display for real-time status, clock, and log (auto-rotating pages)
 - WiFi connection status and OTA update support
 - Node.js backend API for secure relay triggering
-- Stylish web UI for manual control
+- Stylish web UI for manual control and configuration
 - **mDNS support**: Access your ESP32 at http://remote.local on your local network
+- **Web-based configuration**: Change WiFi, API, and static IP settings from the web UI
+- **View logs**: See the latest 20 log entries from the web UI
 
 ## Hardware Requirements
 - ESP32 DevKit
@@ -25,7 +27,7 @@ backend/         # Node.js backend API
   Dockerfile     # (Optional) Docker support
 main/            # ESP32 Arduino code
   main.ino       # Main firmware for ESP32
-  secrets.h      # WiFi credentials (not tracked by git)
+  secrets.h      # WiFi credentials and static IP config (not tracked by git)
 ```
 
 ## How It Works
@@ -33,8 +35,10 @@ main/            # ESP32 Arduino code
 2. The backend Node.js server exposes an API (`/set/on`) to trigger the relay via the ESP32.
 3. The ESP32 checks the backend API every 5 seconds. If the API returns `{ on: true }`, it triggers the relay to power on the PC.
 4. You can also manually trigger the relay from the ESP32's web interface.
-5. The OLED display shows connection and system status.
+5. The OLED display shows connection and system status, clock, and log (auto-rotating).
 6. **You can access the ESP32 using http://remote.local thanks to mDNS.**
+7. You can configure WiFi, API URL, and static IP from the web UI (`/config`).
+8. You can view the latest logs from the web UI (`/log`).
 
 ## Setup Instructions
 
@@ -50,14 +54,19 @@ main/            # ESP32 Arduino code
   - Adafruit_SSD1306
   - ArduinoOTA
   - ESPmDNS *(for mDNS support)*
-- Update `main/main.ino` to include WiFi credentials from `secrets.h` instead of hardcoding them.
-- **Hide your API URL:**
-  - In `main/main.ino`, the API endpoint is set using `#define API_URL "http://your-backend-api-url"`.
-  - For security, create a `main/secrets.h` file and add your API URL there:
+  - Preferences *(for config storage)*
+- Update `main/main.ino` to include WiFi credentials and static IP from `secrets.h` instead of hardcoding them.
+- **Hide your API URL and WiFi credentials:**
+  - In `main/secrets.h`, add:
     ```cpp
     #define WIFI_SSID "YourSSID"
     #define WIFI_PASSWORD "YourPassword"
     #define API_URL "http://your-backend-api-url"
+    #define STATIC_IP "192.168.1.99"
+    #define GATEWAY "192.168.1.1"
+    #define SUBNET "255.255.255.0"
+    #define DNS1 "8.8.8.8"
+    #define DNS2 "8.8.4.4"
     ```
   - Make sure `secrets.h` is listed in `.gitignore` so it is not tracked by git.
 - Flash the firmware to your ESP32.
@@ -73,7 +82,7 @@ main/            # ESP32 Arduino code
 - To trigger the relay, send a GET request to `http://localhost:3000/set/on`.
 
 ### 3. Hardware Wiring
-- Connect the relay module to GPIO 2 of the ESP32.
+- Connect the relay module to GPIO 4 of the ESP32.
 - Connect the SSD1306 OLED display to I2C pins (SDA: 19, SCL: 18).
 - Wire the relay to your PC's power switch header (in parallel).
 
@@ -83,7 +92,9 @@ main/            # ESP32 Arduino code
 
 ## Web Interface
 - Access the ESP32's IP address or `http://remote.local` in your browser to use the web UI.
-- Click the "Turn On PC" button to trigger the relay manually.
+- Click the "Power On PC" button to trigger the relay manually.
+- Click the **Config** button to change WiFi, API, or static IP settings from the web UI.
+- Click the **Log** button to view the latest 20 log entries (status changes, manual triggers, etc).
 
 ## OTA Update
 - Hostname: `ESP32-PC-Remote`
