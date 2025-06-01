@@ -42,6 +42,8 @@ struct Config {
   String subnet;
   String dns1;
   String dns2;
+  int reboot_hour = 3; // Default: 3 AM
+  int reboot_minute = 0; // Default: 00
 };
 
 Config config;
@@ -91,6 +93,8 @@ void loadConfig() {
   config.subnet = preferences.getString("subnet", SUBNET);
   config.dns1 = preferences.getString("dns1", DNS1);
   config.dns2 = preferences.getString("dns2", DNS2);
+  config.reboot_hour = preferences.getInt("reboot_hour", 3);
+  config.reboot_minute = preferences.getInt("reboot_minute", 0);
   preferences.end();
 }
 
@@ -104,6 +108,8 @@ void saveConfig() {
   preferences.putString("subnet", config.subnet);
   preferences.putString("dns1", config.dns1);
   preferences.putString("dns2", config.dns2);
+  preferences.putInt("reboot_hour", config.reboot_hour);
+  preferences.putInt("reboot_minute", config.reboot_minute);
   preferences.end();
 }
 
@@ -198,6 +204,23 @@ void loop() {
   if (millis() - lastDisplaySwitch > displaySwitchInterval) {
     displayMode = (displayMode + 1) % displayModeCount;
     lastDisplaySwitch = millis();
+  }
+
+  // Scheduled daily reboot
+  time_t now = time(nullptr);
+  struct tm *t = localtime(&now);
+  if (t) {
+    if (t->tm_hour == config.reboot_hour && t->tm_min == config.reboot_minute) {
+      if (!rebootedToday || t->tm_mday != lastRebootDay) {
+        addLog("Scheduled reboot at " + String(config.reboot_hour) + ":" + String(config.reboot_minute));
+        delay(1000); // Give time for log to flush
+        ESP.restart();
+        rebootedToday = true;
+        lastRebootDay = t->tm_mday;
+      }
+    } else if (t->tm_mday != lastRebootDay) {
+      rebootedToday = false;
+    }
   }
   delay(100);
 }
@@ -520,6 +543,7 @@ void handleConfigTailwind() {
   html += "<div><label class='block text-white mb-1'>Subnet</label><input name='subnet' value='" + config.subnet + "' class='w-full rounded px-3 py-2 bg-white bg-opacity-80 focus:outline-none'/></div>";
   html += "<div><label class='block text-white mb-1'>DNS1</label><input name='dns1' value='" + config.dns1 + "' class='w-full rounded px-3 py-2 bg-white bg-opacity-80 focus:outline-none'/></div>";
   html += "<div><label class='block text-white mb-1'>DNS2</label><input name='dns2' value='" + config.dns2 + "' class='w-full rounded px-3 py-2 bg-white bg-opacity-80 focus:outline-none'/></div>";
+  html += "<div><label class='block text-white mb-1'>Daily Reboot Time</label><div class='flex space-x-2'><input name='reboot_hour' type='number' min='0' max='23' value='" + String(config.reboot_hour) + "' class='w-20 rounded px-3 py-2 bg-white bg-opacity-80 focus:outline-none'/>:<input name='reboot_minute' type='number' min='0' max='59' value='" + String(config.reboot_minute) + "' class='w-20 rounded px-3 py-2 bg-white bg-opacity-80 focus:outline-none'/></div><span class='text-xs text-blue-200'>24h format (e.g. 3:00 = 3 AM)</span></div>";
   html += "<button type='submit' class='w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-all'>Save & Reboot</button>";
   html += "</form>";
   html += "<div class='text-center mt-4'><a href='/' class='text-blue-200 hover:underline'>Back to Home</a></div>";
@@ -555,6 +579,8 @@ void handleConfigPost() {
   if (server.hasArg("subnet")) config.subnet = server.arg("subnet");
   if (server.hasArg("dns1")) config.dns1 = server.arg("dns1");
   if (server.hasArg("dns2")) config.dns2 = server.arg("dns2");
+  if (server.hasArg("reboot_hour")) config.reboot_hour = server.arg("reboot_hour").toInt();
+  if (server.hasArg("reboot_minute")) config.reboot_minute = server.arg("reboot_minute").toInt();
   saveConfig();
   server.send(200, "text/html", "<html><body><h2>Config Saved! Rebooting...</h2></body></html>");
   delay(1500);
