@@ -70,6 +70,15 @@ String lastLoggedStatus = "";
 String logBuffer[LOG_SIZE];
 int logIndex = 0;
 
+// Scheduled reboot variables
+bool rebootedToday = false;
+int lastRebootDay = -1;
+
+// API/WiFi failure reboot feature
+unsigned long lastGoodAPITime = 0;
+unsigned long lastGoodWiFiTime = 0;
+const unsigned long maxOfflineMillis = 60UL * 60UL * 1000UL; // 1 hour
+
 void addLog(String msg) {
   logBuffer[logIndex] = String("[") + getTimeString() + "] " + msg;
   logIndex = (logIndex + 1) % LOG_SIZE;
@@ -163,6 +172,8 @@ void setup() {
   
   Serial.println("HTTP server started");
   updateDisplay("Server Ready", "IP: " + WiFi.localIP().toString());
+  lastGoodWiFiTime = millis();
+  lastGoodAPITime = millis();
 }
 
 void loop() {
@@ -180,12 +191,17 @@ void loop() {
     lastDebug = millis();
   }
   
+  // Track WiFi connection
+  if (WiFi.status() == WL_CONNECTED) {
+    lastGoodWiFiTime = millis();
+  }
+
   // Check API every 5 seconds
   if (millis() - lastAPICheck >= apiCheckInterval) {
     checkAPI();
     lastAPICheck = millis();
   }
-  
+
   // Check WiFi connection
   if (WiFi.status() != WL_CONNECTED) {
     if (wifiConnected) {
@@ -194,7 +210,15 @@ void loop() {
       connectToWiFi();
     }
   }
-  
+
+  // Reboot if WiFi or API down for over 1 hour
+  unsigned long nowMillis = millis();
+  if ((nowMillis - lastGoodWiFiTime > maxOfflineMillis) || (nowMillis - lastGoodAPITime > maxOfflineMillis)) {
+    addLog("Reboot: WiFi/API offline > 1hr");
+    delay(1000);
+    ESP.restart();
+  }
+
   // Animation/clock/QR update every 300ms
   if (millis() - lastDisplayAnim > 300) {
     updateDisplayPage();
@@ -596,6 +620,7 @@ void checkAPI() {
   int httpCode = http.GET();
   String prevStatus = lastStatus;
   if (httpCode == 200) {
+    lastGoodAPITime = millis();
     String payload = http.getString();
     Serial.println("API Response: " + payload);
     // Parse JSON
